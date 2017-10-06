@@ -348,7 +348,6 @@ double potenciaInv(double **mat, double *eigvec, double val, int n, int m, int m
   double *y = malloc(sizeof(double) * n);
   double *px = malloc(sizeof(double) * n);
   double mu = 0;
-  int i = 0;
   do {
     multMatrizVect(inv, eigvec, n, m, y);
     double norm = norma2Vect(y, n);
@@ -360,14 +359,13 @@ double potenciaInv(double **mat, double *eigvec, double val, int n, int m, int m
     mu += val;
     restaVector(eigvec, px, px, n);
     memcpy(eigvec, y, sizeof(double) *n);
-    i++;
-  } while(norma2Vect(px, n) > toler && maxIter > i);
+    *k += 1;
+    *err = norma2Vect(px, n);
+  } while(*err > toler && maxIter > *k);
 
   for (int i = 0; i < n; ++i) {
     mat[i][i] += val;
   }
-  *k = i;
-  *err = norma2Vect(px, n);
   free(px);
   free(y);
   freeMtx(inv);
@@ -384,6 +382,7 @@ double* allEigv(double **mat, int n, int m, int maxIter, double toler, int secti
   int k;
   double err;
   for (int t = 0; t <= sections; ++t) {
+    k = 0;
     double aprox = -d + t*delta;
     double val = potenciaInv(mat, eigVect, aprox, n, m, maxIter, toler, &k, &err);
     if((i==0 || fabs(val - eigvals[i-1]) > 0.0001) && err < toler){
@@ -425,4 +424,33 @@ void inverseMtx(double **mat, double **inv, int n, int m){
     free(b);
   }
   freeMtx(l); freeMtx(u);
+}
+
+//jacobi
+double valMayor(double **mat, int n, int m, int *x, int *y){
+  double mayor = 0;
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      if (i == j) continue;
+      if(mayor < fabs(mat[i][j])){
+        mayor = fabs(mat[i][j]);
+        *x = i; *y = j;
+      }
+    }
+  }
+  return mayor;
+}
+
+double* jacobiEig(double **mat, double**eigVec, int n, int m, int maxIter, double toler){
+  int x, y;
+  double max = valMayor(mat, n, m, &x, &y);
+  if(max < toler) return NULL; //eigvs in diag
+  double **eigvalsM = allocMtx(n, m);
+  for (int i = 0; i < n; ++i) memcpy(eigvalsM[i], mat[i], sizeof(double) * m);
+
+  while (max > toler){
+
+  }
+
+  double *eigvals = malloc(sizeof(double) * n);
 }

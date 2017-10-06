@@ -63,4 +63,9 @@ double  nearestEigv(double **mat, double *eigvec, double val,  int n, int m, int
 double*     allEigv(double **mat, int n, int m, int maxIter, double toler, int sections);
 //inverse, mat is nxm, inv is mxn
 void inverseMtx(double **mat, double **inv, int n, int m);
+
+//jacobi
+double valMayor(double **mat, int n, int m, int *x, int *y);
+double* jacobiEig(double **mat,  double**eigVec, int n, int m, int maxIter, double toler);
+
 #endif //TAREA3_MATRIX_H
