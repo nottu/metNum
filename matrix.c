@@ -71,7 +71,8 @@ void  multMatrizVect(double **mat, double *vec, int n, int m, double* res){
 //other
 void printVect(double * a, int n){
   for (int i = 0; i < n; ++i) {
-    printf("%g ", a[i]);
+    if(a[i] > 0) printf(" ");
+    printf("%3.3lf ", a[i]);
   }
   printf("\n");
 }
@@ -123,6 +124,7 @@ double **allocMtx(int nr, int nc){
   return mtx;
 }
 void freeMtx(double**a){
+  if(a == NULL) return; //nothing to free...
   void *indi = (void*)a - sizeof(int);
   int nr = ((int*)indi)[0];
   if(nr){
@@ -187,8 +189,7 @@ double* diagSol(double*a , double*b, int n){
   return vect;
 }
 double* upperSol(double**a , double*b, int nr, int nc){
-  double *vect = malloc(sizeof(double) * nr);
-
+  double *vect = malloc(sizeof(double) * nc);
   for (int i = nr -1; i >= 0; i--) {
     double tmp = b[i];
     for (int j = i+1; j < nc; ++j) {
@@ -199,7 +200,7 @@ double* upperSol(double**a , double*b, int nr, int nc){
   return vect;
 }
 double* lowerSol(double**a , double*b, int nr, int nc){
-  double *vect = malloc(sizeof(double) * nr);
+  double *vect = malloc(sizeof(double) * nc);
 
   for (int i = 0; i < nr; ++i) {
     double tmp = b[i];
@@ -235,7 +236,13 @@ int luFactor(double** a, double **l, double **u, int nr, int nc){
   }
   return 1;
 }
-void luSolver(double **l, double **u, double *b, int nr, int nc){}
+
+double* luSolver(double **l, double **u, double *b, int nr, int nc){
+  double* sol = lowerSol(l, b, nr, nc);
+  double* sol2 = upperSol(u, sol, nr, nc);
+  free(sol);
+  return sol2;
+}
 //same as lu factor, but in 1 matrix
 int luFactor2(double **a, int nr, int nc){
   for (int i = 0; i < nr; ++i) {
@@ -259,7 +266,18 @@ int luFactor2(double **a, int nr, int nc){
   }
   return 1;
 }
-void luSolver2(double **a, double *b, int nr, int nc){}
+double* luSolver2(double **a, double *b, int nr, int nc){
+  double* sol = lowerSol(a, b, nr, nc);
+  //need to do upper sol with upper a and 1 in diagonal
+  for (int i = nr -1; i >= 0; i--) {
+    double tmp = sol[i];
+    for (int j = i+1; j < nc; ++j) {
+      tmp -= sol[j] * a[i][j];
+    }
+    sol[i] = tmp;
+  }
+  return sol;
+}
 
 double* triDiagSol(double **a, double *d, int nr, int nc){
   double *xi = malloc(sizeof(double) * nr);
@@ -290,10 +308,10 @@ double potencia(double **mat, double *eigvec, int nr, int nc, int maxIter, doubl
     normalizaVect(eigvec, nr);
     multMatrizVect(mat, eigvec, nr, nc, vt);
     eigV = productoPunto(eigvec, vt, nr);
-    memcpy(y, eigvec, nr * sizeof(double));
+    memcpy(vt, eigvec, nr * sizeof(double));
     vectorScalar(vt, eigV, nr);
     restaVector(y, vt, vt, nr);
-    error = sqrt(norma2VectSq(vt, nr));
+    error = norma2Vect(vt, nr);
   }
   while(++i < maxIter && error > toler);
   free(y); free(vt);
@@ -303,19 +321,108 @@ double potencia(double **mat, double *eigvec, int nr, int nc, int maxIter, doubl
 //  printf("Error %g\n", error);
   return eigV;
 }
-double potenciaInv(double **mat, double *eigvec, int nr, int nc, int maxIter, double toler){
-  //factorizar matriz en LU
-  double **l = allocMtx(nr, nc);
-  double **u = allocMtx(nr, nc);
-  for (int i = 0; i < nr; ++i) {
-    for (int j = 0; j < nc; ++j) {
-      l[i][j] = 0;
-      u[i][j] = 0;
+double smallestEigv(double **mat, double *eigvec, int n, int m, int maxIter, double toler){
+  double **inv = allocMtx(m, n);
+  inverseMtx(mat, inv, n, m);
+  double lam = potencia(inv, eigvec, m, n, 1000, 0.0001);
+  freeMtx(inv);
+  return fabs(lam) > ZERO ? 1/lam : lam;
+}
+double nearestEigv(double **mat, double *eigvec, double val,  int n, int m, int maxIter, double toler){
+  for (int i = 0; i < n; ++i) {
+    mat[i][i] -= val;
+  }
+  double  l = smallestEigv(mat, eigvec, n, m, maxIter, toler);
+  for (int i = 0; i < n; ++i) {
+    mat[i][i] += val;
+  }
+  return val + l;
+}
+double potenciaInv(double **mat, double *eigvec, double val, int n, int m, int maxIter, double toler, int *k, double *err){
+  for (int i = 0; i < n; ++i) {
+    mat[i][i] -= val;
+  }
+  double **inv = allocMtx(m, n);
+  inverseMtx(mat, inv, n, m);
+  for (int i = 0; i < n; ++i) eigvec[i] = 1;
+  double *y = malloc(sizeof(double) * n);
+  double *px = malloc(sizeof(double) * n);
+  double mu = 0;
+  int i = 0;
+  do {
+    multMatrizVect(inv, eigvec, n, m, y);
+    double norm = norma2Vect(y, n);
+    vectorScalar(y, 1/norm, n);      //x^
+    vectorScalar(eigvec, 1/norm, n); //w
+    mu = productoPunto(y, eigvec, n);
+    memcpy(px, y, sizeof(double) * n);
+    vectorScalar(px, mu, n);
+    mu += val;
+    restaVector(eigvec, px, px, n);
+    memcpy(eigvec, y, sizeof(double) *n);
+    i++;
+  } while(norma2Vect(px, n) > toler && maxIter > i);
+
+  for (int i = 0; i < n; ++i) {
+    mat[i][i] += val;
+  }
+  *k = i;
+  *err = norma2Vect(px, n);
+  free(px);
+  free(y);
+  freeMtx(inv);
+  return mu;
+}
+
+double* allEigv(double **mat, int n, int m, int maxIter, double toler, int sections){
+  double d = normaInf(mat, n, m);
+  double delta = 2*d/sections;
+  double *eigvals = malloc(sizeof(double) * n);
+  for (int i = 0; i < n; ++i) eigvals[i] = NAN;
+  double *eigVect = malloc(sizeof(double) * n);
+  int i = 0;
+  int k;
+  double err;
+  for (int t = 0; t <= sections; ++t) {
+    double aprox = -d + t*delta;
+    double val = potenciaInv(mat, eigVect, aprox, n, m, maxIter, toler, &k, &err);
+    if((i==0 || fabs(val - eigvals[i-1]) > 0.0001) && err < toler){
+        eigvals[i++] = val;
+        printf("----------------\nValor mu %lf\n", val);
+        printf("Iteraciones realizadas %d\n", k);
+        printf("||r|| %g\n----------------\n", err);
     }
   }
-  luFactor(mat, l, u, nr, nc);
-  printf("----------L---------\n");printMtx(l, nr, nc);
-  printf("----------L---------\n");printMtx(u, nr, nc);
-  luFactor2(mat, nr, nc);
-  printf("----------L---------\n");printMtx(mat, nr, nc);
+  free(eigVect);
+  return eigvals;
+}
+double normaInf(double **m1, int n, int m){
+  double max = 0;
+  for (int i = 0; i < n; ++i) {
+    double sum = 0;
+    for (int j = 0; j < m; ++j) {
+      sum += fabs(m1[i][j]);
+    }
+    if(sum > max) max = sum;
+  }
+  return max;
+}
+void inverseMtx(double **mat, double **inv, int n, int m){
+  double **l = allocMtx(n, m);
+  double **u = allocMtx(n, m);
+  if (luFactor(mat, l, u, n, m)){
+    double *b = malloc(sizeof(double) * m);
+    for (int i = 0; i < n; ++i) {
+      for (int j = 0; j < m; ++j) {
+        b[j] = j == i;
+      }
+      double *sol = luSolver(l, u, b, n, m);
+      for (int j = 0; j < n; ++j) {
+        inv[j][i] = sol[j];
+      }
+      free(sol);
+    }
+    free(b);
+  }
+  freeMtx(l); freeMtx(u);
 }

@@ -37,23 +37,30 @@ void      freeMtx(double**a);
 double   norma2Vect(double *v,   int size);
 double norma2VectSq(double* v, int size);
 void  normalizaVect(double *v, int size);
+//
 double   diffVectSq(double *v1,  double *v2,  int size);
-double   diffMatrizSq(double **m1, double **m2, int nr, int nc);
+double diffMatrizSq(double **m1, double **m2, int nr, int nc);
+double     normaInf(double **m1, int n, int m);
 
 //sol mtx
 double*  diagSol(double  *a, double *b,  int n);
 double* upperSol(double **a, double *b,  int nr, int nc);
 double* lowerSol(double **a, double *b,  int nr, int nc);
 //
-int   luFactor(double **a, double **l, double **u, int nr, int nc);
-void  luSolver(double **l, double **u, double *b, int nr, int nc);
-int  luFactor2(double **a, int nr, int nc);
-void luSolver2(double **a, double *b, int nr, int nc);
+int      luFactor(double **a, double **l, double **u, int nr, int nc);
+double*  luSolver(double **l, double **u, double *b, int nr, int nc);
+int     luFactor2(double **a, int nr, int nc);
+double* luSolver2(double **a, double *b, int nr, int nc);
+
 //sol tridiag
 double* triDiagSol(double **a, double *b, int nr, int nc);
 
 //eigen
-double    potencia(double **mat, double *eigvec, int nr, int nc, int maxIter, double toler);
-double potenciaInv(double **mat, double *eigvec, int nr, int nc, int maxIter, double toler);
-
+double     potencia(double **mat, double *eigvec, int nr, int nc, int maxIter, double toler);
+double  potenciaInv(double **mat, double *eigvec, double val, int nr, int nc, int maxIter, double toler, int *k, double *err);
+double smallestEigv(double **mat, double *eigvec, int n, int m, int maxIter, double toler);
+double  nearestEigv(double **mat, double *eigvec, double val,  int n, int m, int maxIter, double toler);
+double*     allEigv(double **mat, int n, int m, int maxIter, double toler, int sections);
+//inverse, mat is nxm, inv is mxn
+void inverseMtx(double **mat, double **inv, int n, int m);
 #endif //TAREA3_MATRIX_H
