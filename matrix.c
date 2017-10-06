@@ -123,6 +123,15 @@ double **allocMtx(int nr, int nc){
   }
   return mtx;
 }
+double** allocMtxI(int n){
+  double ** mtx = allocMtx(n, n);
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < n; ++j) {
+      mtx[i][j] = j == i ? 1 : 0;
+    }
+  }
+  return mtx;
+}
 void freeMtx(double**a){
   if(a == NULL) return; //nothing to free...
   void *indi = (void*)a - sizeof(int);
@@ -440,17 +449,61 @@ double valMayor(double **mat, int n, int m, int *x, int *y){
   }
   return mayor;
 }
-
+//GT * A * G
+void givensRotate(double **mat, int n, int m, int mi, int mj, double c, double s){
+  for (int i = 0; i < m; ++i) {
+    double matimi = mat[i][mi];
+    mat[i][mi] = matimi * c - s*mat[i][mj];
+    mat[i][mj] = matimi * s + c*mat[i][mj];
+  }
+  for (int i = 0; i < n; ++i) {
+    double matmii =  mat[mi][i];
+    mat[mi][i] = mat[mi][i] * c - s*mat[mj][i];
+    mat[mj][i] = matmii * s + c*mat[mj][i];
+  }
+}
+void givensM(double **mat, int n, int m, int mi, int mj, double c, double s){
+  for (int i = 0; i < m; ++i) {
+    double matimi = mat[i][mi];
+    mat[i][mi] = matimi * c - s*mat[i][mj];
+    mat[i][mj] = matimi * s + c*mat[i][mj];
+  }
+}
 double* jacobiEig(double **mat, double**eigVec, int n, int m, int maxIter, double toler){
   int x, y;
   double max = valMayor(mat, n, m, &x, &y);
   if(max < toler) return NULL; //eigvs in diag
   double **eigvalsM = allocMtx(n, m);
   for (int i = 0; i < n; ++i) memcpy(eigvalsM[i], mat[i], sizeof(double) * m);
-
-  while (max > toler){
-
+  int iter = 0;
+  while (max > toler && ++iter < maxIter){
+    double d = (eigvalsM[y][y] - eigvalsM[x][x])/(2 * eigvalsM[x][y]);
+    double t = 1 / (fabs(d) + sqrt(1 + d*d));
+    t = d > 0 ? t : -t;
+    double c = 1/(sqrt(1 + t * t));
+    double s = c * t;
+    givensRotate(eigvalsM, n, m, x, y, c, s);
+    givensM(eigVec, n, n, x, y, c, s);
+    max = valMayor(eigvalsM, n, m, &x, &y);
   }
+  //printf("--------\n");printMtx(eigvalsM, n, m);
+  //printf("--------\n");printMtx(eigVec, n, m);
+  printf("Iteraciones: %d\n", iter);
+
+  double **AV = allocMtx(n, m);
+  multMatriz(mat, eigVec, n, m, m, n, AV);
+  double **VD = allocMtx(n, m);
+  multMatriz(eigVec, eigvalsM, n, m, m, n, VD);
+
+
+  printf("||AV - VD|| = %g\n", sqrt(diffMatrizSq(AV, VD, n, m)));
+
+  freeMtx(VD); freeMtx(AV);
 
   double *eigvals = malloc(sizeof(double) * n);
+  for (int i = 0; i < n; ++i) {
+    eigvals[i] = eigvalsM[i][i];
+  }
+  freeMtx(eigvalsM);
+  return eigvals;
 }

@@ -21,6 +21,8 @@ void   multVector(double *v1, double *v2, double* out, int size);
 void   productoPuntoA(double *v1, double *v2, double* out, int size);
 double  productoPunto(double *v1, double *v2, int size);
 
+void  sumaMatrix(double **mat1, double **mat2, int n, int m, double** out);
+void restaMatrix(double **mat1, double **mat2, int n, int m, double** out);
 //
 void multMatrizVect(double **mat,  double *vec,   int n, int m, double* res);
 void     multMatriz(double **mat1, double **mat2, int n, int m, int p, int q, double** out);
@@ -31,7 +33,8 @@ void  printMtx(double **a, int nr, int nc);
 double*  readVector(char* name, int* sz);
 double**    readMtx(char* name, int* nr, int* nc);
 //
-double** allocMtx(int nr,    int nc);
+double**  allocMtx(int nr, int nc);
+double** allocMtxI(int n);
 void      freeMtx(double**a);
 //
 double   norma2Vect(double *v,   int size);
