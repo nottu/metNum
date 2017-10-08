@@ -29,6 +29,7 @@ void     multMatriz(double **mat1, double **mat2, int n, int m, int p, int q, do
 //
 void printVect(double *a,  int n);
 void  printMtx(double **a, int nr, int nc);
+void  printMtxT(double **a, int nr, int nc);
 //
 double*  readVector(char* name, int* sz);
 double**    readMtx(char* name, int* nr, int* nc);

@@ -71,7 +71,7 @@ void  multMatrizVect(double **mat, double *vec, int n, int m, double* res){
 //other
 void printVect(double * a, int n){
   for (int i = 0; i < n; ++i) {
-    if(a[i] > 0) printf(" ");
+    if(a[i] >= 0) printf(" ");
     printf("%3.3lf ", a[i]);
   }
   printf("\n");
@@ -79,6 +79,15 @@ void printVect(double * a, int n){
 void printMtx(double**a, int nr, int nc){
   for (int i = 0; i < nr; ++i) {
     printVect(a[i], nc);
+  }
+}
+void printMtxT(double**a, int nr, int nc){
+  for (int i = 0; i < nc; ++i) {
+    for (int j = 0; j < nr; ++j) {
+      if(a[j][i] >= 0) printf(" ");
+      printf("%3.3lf ", a[j][i]);
+    }
+    printf("\n");
   }
 }
 
